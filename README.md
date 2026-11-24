@@ -1,5 +1,5 @@
 # beats
 
-Beats generator, served at https://beats.svejdovi.org via Cloudflare Pages.
+Focus Beats — pomodoro timer with binaural beats, rhythm and noise. Served at https://beats.svejdovi.org.
 
-Cloudflare Pages settings: framework preset **None**, build command empty, output directory `/`.
+The whole app is `public/index.html`. Cloudflare: build command empty, deploy command `npx wrangler deploy`.

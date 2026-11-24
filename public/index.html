@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Focus Beats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0e1014;--card:#161920;--line:#252a33;--text:#ebe7e1;--muted:#8a909b;--accent:#ff8a3d;--accent-soft:rgba(255,138,61,.15)}
+body[data-phase=short]{--accent:#3cd3b2;--accent-soft:rgba(60,211,178,.15)}
+body[data-phase=long]{--accent:#a08cff;--accent-soft:rgba(160,140,255,.15)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:'Space Grotesk',system-ui,sans-serif}
+body{min-height:100vh;background:radial-gradient(1100px 600px at 30% -10%,var(--accent-soft),transparent 65%),var(--bg)}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 20px 48px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px;letter-spacing:-.01em}
+.logo{width:22px;height:22px;border-radius:50%;border:3px solid var(--accent);box-shadow:0 0 18px var(--accent);transition:border-color .6s,box-shadow .6s}
+.hint{color:var(--muted);font-size:13px}
+kbd{font-family:'JetBrains Mono',monospace;font-size:11px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:var(--text)}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.timer{grid-column:span 2}
+.side{display:flex;flex-direction:column;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.timer{grid-column:auto}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;transition:border-color .5s,box-shadow .5s}
+.card.live{border-color:color-mix(in srgb,var(--accent) 60%,var(--line));box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 25%,transparent),0 10px 40px -20px var(--accent)}
+.card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+h2{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0;font-weight:600}
+.card-head h2{color:var(--accent)}
+.side h2,.notes h2{margin-bottom:14px}
+.timer{display:flex;flex-direction:column;align-items:center;padding:24px 20px 26px}
+.tabs{display:flex;gap:4px;background:#0f1217;border:1px solid var(--line);padding:4px;border-radius:999px}
+.tabs button{border:0;border-radius:999px;padding:7px 16px;font-size:14px;color:var(--muted)}
+.tabs button.on{background:var(--accent);color:#14110e;font-weight:600}
+.ring{position:relative;width:min(360px,78vw);aspect-ratio:1;margin:22px 0 8px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.track{fill:none;stroke:#20242d;stroke-width:6}
+.prog{fill:none;stroke:var(--accent);stroke-width:6;stroke-linecap:round;transition:stroke .6s;filter:drop-shadow(0 0 6px var(--accent))}
+.glow{position:absolute;inset:14%;border-radius:50%;background:radial-gradient(circle,var(--accent-soft),transparent 70%);opacity:.5}
+.center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+#phaseName{color:var(--accent);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:14px}
+#time{font-family:'JetBrains Mono',monospace;font-size:clamp(52px,10vw,86px);font-weight:700;letter-spacing:-.03em;line-height:1.1;margin:4px 0}
+#sub{color:var(--muted);font-size:14px}
+.dots{display:flex;gap:9px;margin:4px 0 22px}
+.dot{width:11px;height:11px;border-radius:50%;border:2px solid #343a45;transition:all .4s}
+.dot.on{background:var(--accent);border-color:var(--accent);box-shadow:0 0 8px var(--accent)}
+.controls{display:flex;gap:12px;align-items:center}
+button{font:inherit;cursor:pointer;color:var(--text);background:transparent;border:1px solid var(--line);border-radius:12px;padding:10px 18px;transition:background .2s,border-color .2s,color .2s}
+button:hover{border-color:#3d4450}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:#14110e;border-color:transparent;font-weight:700;padding:14px 0;font-size:18px;border-radius:14px;width:170px}
+button.primary:hover{filter:brightness(1.08)}
+button.sm{padding:6px 12px;font-size:13px;border-radius:10px}
+button.sm.on{background:var(--accent);color:#14110e;border-color:transparent;font-weight:600}
+.np{margin-top:18px;color:var(--muted);font-size:13px;text-align:center;min-height:1.2em}
+.field{margin:0 0 14px}
+.field:last-child{margin-bottom:0}
+.field>label,.lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;margin-bottom:6px}
+.val{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+select,input[type=number]{width:100%;background:#0f1217;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:14px}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.seg button{padding:7px 0;font-size:13px;border-radius:9px;color:var(--muted)}
+.seg button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--text)}
+.check{display:flex;align-items:center;gap:9px;font-size:14px;cursor:pointer;margin-bottom:10px}
+.check input{accent-color:var(--accent);width:16px;height:16px;margin:0}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row2 .field label{font-size:13px;color:var(--muted)}
+.note{font-size:13px;color:var(--muted);line-height:1.6;margin:0 0 10px}
+.note b{color:var(--text);font-weight:600}
+.sep{height:1px;background:var(--line);margin:16px 0}
+#card-focus{--accent:#ff8a3d;--accent-soft:rgba(255,138,61,.15)}
+#card-brk{--accent:#3cd3b2;--accent-soft:rgba(60,211,178,.15)}
+</style>
+</head>
+<body data-phase="focus">
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="logo"></span>Focus Beats</div>
+    <div class="hint"><kbd>Space</kbd> start / pause &nbsp; <kbd>S</kbd> skip &nbsp; 🎧 headphones for binaural</div>
+  </header>
+
+  <main class="grid">
+    <section class="card timer">
+      <div class="tabs" id="tabs">
+        <button data-ph="focus">Focus</button>
+        <button data-ph="short">Short break</button>
+        <button data-ph="long">Long break</button>
+      </div>
+      <div class="ring" id="ring">
+        <div class="glow" id="glow"></div>
+        <svg viewBox="0 0 200 200"><circle class="track" cx="100" cy="100" r="90"/><circle class="prog" id="prog" cx="100" cy="100" r="90"/></svg>
+        <div class="center">
+          <div id="phaseName">Focus</div>
+          <div id="time">25:00</div>
+          <div id="sub"></div>
+        </div>
+      </div>
+      <div class="dots" id="dots"></div>
+      <div class="controls">
+        <button id="reset">Reset</button>
+        <button id="start" class="primary">Start</button>
+        <button id="skip">Skip</button>
+      </div>
+      <div class="np" id="np"></div>
+    </section>
+
+    <div class="side">
+      <section class="card">
+        <h2>Mixer</h2>
+        <div class="field"><label>Master <span class="val" id="v-master"></span></label><input type="range" min="0" max="1" step="0.01" data-vol="master"></div>
+        <div class="field"><label>Binaural tones <span class="val" id="v-binaural"></span></label><input type="range" min="0" max="1" step="0.01" data-vol="binaural"></div>
+        <div class="field"><label>Rhythm <span class="val" id="v-rhythm"></span></label><input type="range" min="0" max="1" step="0.01" data-vol="rhythm"></div>
+        <div class="field"><label>Noise <span class="val" id="v-noise"></span></label><input type="range" min="0" max="1" step="0.01" data-vol="noise"></div>
+      </section>
+      <section class="card">
+        <h2>Timer</h2>
+        <div class="row2">
+          <div class="field"><label>Focus (min)</label><input type="number" min="1" max="180" data-t="focusMin"></div>
+          <div class="field"><label>Short break</label><input type="number" min="1" max="60" data-t="shortMin"></div>
+          <div class="field"><label>Long break</label><input type="number" min="1" max="90" data-t="longMin"></div>
+          <div class="field"><label>Long break every</label><input type="number" min="2" max="12" data-t="longEvery"></div>
+        </div>
+        <label class="check"><input type="checkbox" data-t="autoNext"> Start next phase automatically</label>
+        <label class="check" style="margin-bottom:0"><input type="checkbox" data-t="headsUp"> Soft ping 1 minute before switch</label>
+      </section>
+    </div>
+
+    <section class="card sound" id="card-focus"></section>
+    <section class="card sound" id="card-brk"></section>
+
+    <section class="card notes">
+      <h2>How it works</h2>
+      <p class="note"><b>Cues.</b> When focus ends you hear a <b>descending</b> chime and the sound glides into your break mix. Back to work = <b>rising</b> chime and the driving beat returns.</p>
+      <p class="note"><b>Binaural beats</b> need headphones: each ear gets a slightly different tone and your brain “hears” the difference (e.g. 192 Hz + 208 Hz → 16 Hz). The research is mixed, so treat it as an experiment — try a week with it on and a week off.</p>
+      <p class="note"><b>Bands</b>: θ theta 4–8 · α alpha 8–13 (relaxed) · β beta 13–30 (alert) · γ gamma 30+.</p>
+      <p class="note" style="margin:0">Keep this tab open; it keeps running in the background. Settings are saved in this browser.</p>
+    </section>
+  </main>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+/* ---------------- settings ---------------- */
+const DEFAULTS = {
+  focusMin: 25, shortMin: 5, longMin: 15, longEvery: 4, autoNext: true, headsUp: true,
+  vol: { master: 0.8, binaural: 0.4, rhythm: 0.7, noise: 0.3 },
+  focus: { binOn: true, beat: 16, carrier: 200, pattern: 'drive', bpm: 112, noise: 'brown' },
+  brk:   { binOn: true, beat: 10, carrier: 160, pattern: 'heartbeat', bpm: 60, noise: 'pink' }
+};
+const KEY = 'focusbeats.v1';
+function deepMerge(a, b) {
+  for (const k in b) {
+    if (!(k in a)) continue;
+    if (b[k] && typeof b[k] === 'object' && a[k] && typeof a[k] === 'object') deepMerge(a[k], b[k]);
+    else if (typeof b[k] === typeof a[k]) a[k] = b[k];
+  }
+  return a;
+}
+function load() {
+  const base = JSON.parse(JSON.stringify(DEFAULTS));
+  try { const raw = localStorage.getItem(KEY); if (raw) return deepMerge(base, JSON.parse(raw)); } catch (e) {}
+  return base;
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+const S = load();
+
+/* ---------------- rhythm patterns (16 steps, digit = velocity 0-9) ---------------- */
+const PATTERNS = {
+  drive:     { name: 'Drive — kick, clap, hats', group: 'Driving', kick: '9000900090009000', snare: '0000800000008000', hat: '3272327232723272' },
+  pulse:     { name: 'Pulse — kick + offbeat hat', group: 'Driving', kick: '9000900090009000', ohat: '0070007000700070' },
+  tribal:    { name: 'Tribal — kick & toms', group: 'Driving', kick: '9000009090000000', tom: '0060600000706050', hat: '4030403040304030' },
+  tick:      { name: 'Metronome click', group: 'Driving', click: '9000600060006000' },
+  heartbeat: { name: 'Heartbeat', group: 'Calm', thump: '7400740074007400' },
+  gentle:    { name: 'Gentle — shaker & soft thump', group: 'Calm', thump: '6000000050000000', shaker: '3020302030203020' },
+  drift:     { name: 'Drift — sparse & soft', group: 'Calm', thump: '5000000000000000', rim: '0000000030000000', shaker: '0000200000002000' },
+  off:       { name: 'No rhythm', group: 'Calm' }
+};
+const PULSE_INST = { kick: 1, thump: 1, click: 1, tom: 0.6 };
+
+/* ---------------- audio engine ---------------- */
+let ctx = null, master, binGain, rhythmBus, chimeBus, oscL, oscR, whiteBuf;
+const noiseGains = {};
+const NOISE_SCALE = { white: 0.22, pink: 0.6, brown: 0.75 };
+let audioOn = false, preview = null, suspendTimer = null;
+let nextStepTime = 0, step = 0, lastProfKey = '';
+const LOOKAHEAD = 0.4;
+const pulseQ = [];
+
+function activeKey() { return preview || (T.phase === 'focus' ? 'focus' : 'brk'); }
+function activeProfile() { return S[activeKey()]; }
+
+function makeNoise(type) {
+  const sr = ctx.sampleRate, L = sr * 8, F = Math.floor(sr * 0.5);
+  const buf = ctx.createBuffer(2, L, sr);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = new Float32Array(L + F);
+    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, last = 0;
+    for (let i = 0; i < L + F; i++) {
+      const w = Math.random() * 2 - 1;
+      let v;
+      if (type === 'white') v = w;
+      else if (type === 'pink') {
+        b0 = 0.99886 * b0 + w * 0.0555179; b1 = 0.99332 * b1 + w * 0.0750759;
+        b2 = 0.96900 * b2 + w * 0.1538520; b3 = 0.86650 * b3 + w * 0.3104856;
+        b4 = 0.55000 * b4 + w * 0.5329522; b5 = -0.7616 * b5 - w * 0.0168980;
+        v = b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362; b6 = w * 0.115926;
+      } else { last = (last + 0.02 * w) / 1.02; v = last; }
+      d[i] = v;
+    }
+    // equal-power crossfade the tail into the head so the loop is seamless
+    const out = buf.getChannelData(ch);
+    let peak = 0;
+    for (let i = 0; i < L; i++) {
+      let v = d[i];
+      if (i < F) { const x = (i / F) * Math.PI / 2; v = d[i] * Math.sin(x) + d[L + i] * Math.cos(x); }
+      out[i] = v; const a = Math.abs(v); if (a > peak) peak = a;
+    }
+    for (let i = 0; i < L; i++) out[i] /= peak;
+  }
+  return buf;
+}
+
+function initAudio() {
+  if (ctx) return;
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -12; comp.ratio.value = 4; comp.attack.value = 0.005; comp.release.value = 0.2;
+  comp.connect(ctx.destination);
+  master = ctx.createGain(); master.gain.value = 0; master.connect(comp);
+
+  const p = activeProfile();
+  const merger = ctx.createChannelMerger(2);
+  oscL = ctx.createOscillator(); oscR = ctx.createOscillator();
+  oscL.frequency.value = p.carrier - p.beat / 2; oscR.frequency.value = p.carrier + p.beat / 2;
+  oscL.connect(merger, 0, 0); oscR.connect(merger, 0, 1);
+  binGain = ctx.createGain(); binGain.gain.value = 0;
+  merger.connect(binGain).connect(master);
+  oscL.start(); oscR.start();
+
+  for (const type of ['white', 'pink', 'brown']) {
+    const src = ctx.createBufferSource(); src.buffer = makeNoise(type); src.loop = true;
+    const g = ctx.createGain(); g.gain.value = 0;
+    src.connect(g).connect(master); src.start();
+    noiseGains[type] = g;
+  }
+
+  rhythmBus = ctx.createGain(); rhythmBus.gain.value = S.vol.rhythm; rhythmBus.connect(master);
+  chimeBus = ctx.createGain(); chimeBus.gain.value = 0.7; chimeBus.connect(master);
+
+  whiteBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+  const wd = whiteBuf.getChannelData(0);
+  for (let i = 0; i < wd.length; i++) wd[i] = Math.random() * 2 - 1;
+  nextStepTime = ctx.currentTime + 0.1;
+}
+
+function applyAudio(tc = 0.4) {
+  if (!ctx) return;
+  const p = activeProfile(), now = ctx.currentTime;
+  oscL.frequency.setTargetAtTime(p.carrier - p.beat / 2, now, tc);
+  oscR.frequency.setTargetAtTime(p.carrier + p.beat / 2, now, tc);
+  binGain.gain.setTargetAtTime(p.binOn ? S.vol.binaural * 0.28 : 0, now, tc);
+  for (const t in noiseGains) noiseGains[t].gain.setTargetAtTime(p.noise === t ? S.vol.noise * NOISE_SCALE[t] : 0, now, tc);
+  rhythmBus.gain.setTargetAtTime(S.vol.rhythm, now, 0.05);
+  if (audioOn) master.gain.setTargetAtTime(S.vol.master, now, 0.08);
+}
+
+function startAudio() {
+  initAudio();
+  clearTimeout(suspendTimer);
+  if (ctx.state !== 'running') ctx.resume().catch(() => {});
+  audioOn = true;
+  nextStepTime = Math.max(nextStepTime, ctx.currentTime + 0.06);
+  master.gain.cancelScheduledValues(ctx.currentTime);
+  master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
+  applyAudio(0.25);
+  master.gain.setTargetAtTime(S.vol.master, ctx.currentTime, 0.2);
+}
+function stopAudio(delay = 0) {
+  if (!ctx) return;
+  audioOn = false;
+  const t = ctx.currentTime + delay;
+  master.gain.cancelScheduledValues(ctx.currentTime);
+  master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
+  master.gain.setTargetAtTime(0, t, 0.25);
+  clearTimeout(suspendTimer);
+  suspendTimer = setTimeout(() => { if (!audioOn) ctx.suspend().catch(() => {}); }, delay * 1000 + 2000);
+}
+
+/* instruments */
+function env(g, t, v, a, d) {
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(Math.max(v, 0.0002), t + a);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + a + d);
+}
+function noiseHit(t, v, ftype, freq, q, a, d) {
+  const s = ctx.createBufferSource(); s.buffer = whiteBuf;
+  const f = ctx.createBiquadFilter(); f.type = ftype; f.frequency.value = freq; f.Q.value = q;
+  const g = ctx.createGain(); env(g, t, v, a, d);
+  s.connect(f).connect(g).connect(rhythmBus);
+  s.start(t, Math.random() * 0.5); s.stop(t + a + d + 0.05);
+}
+function tone(t, v, type, f0, f1, glide, a, d) {
+  const o = ctx.createOscillator(); o.type = type;
+  o.frequency.setValueAtTime(f0, t);
+  if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + glide);
+  const g = ctx.createGain(); env(g, t, v, a, d);
+  o.connect(g).connect(rhythmBus);
+  o.start(t); o.stop(t + a + d + 0.05);
+}
+const INST = {
+  kick:   (t, v) => { tone(t, v, 'sine', 165, 46, 0.12, 0.003, 0.42); noiseHit(t, v * 0.2, 'highpass', 3000, 0.7, 0.001, 0.02); },
+  thump:  (t, v) => tone(t, v * 0.95, 'sine', 80, 48, 0.18, 0.02, 0.38),
+  snare:  (t, v) => { noiseHit(t, v * 0.55, 'bandpass', 1800, 0.8, 0.002, 0.17); tone(t, v * 0.3, 'triangle', 200, 150, 0.08, 0.002, 0.1); },
+  hat:    (t, v) => noiseHit(t, v * 0.35, 'highpass', 7500, 0.7, 0.001, 0.045),
+  ohat:   (t, v) => noiseHit(t, v * 0.3, 'highpass', 7000, 0.7, 0.002, 0.2),
+  shaker: (t, v) => noiseHit(t, v * 0.32, 'bandpass', 5500, 1.2, 0.012, 0.07),
+  rim:    (t, v) => tone(t, v * 0.35, 'triangle', 820, null, 0, 0.001, 0.06),
+  tom:    (t, v) => tone(t, v * 0.75, 'sine', 150, 95, 0.2, 0.004, 0.3),
+  click:  (t, v) => tone(t, v * 0.6, 'sine', v > 0.8 ? 1760 : 1320, null, 0, 0.001, 0.03)
+};
+
+function playStep(i, t, p) {
+  const pat = PATTERNS[p.pattern] || PATTERNS.off;
+  let pv = 0;
+  for (const inst in INST) {
+    const str = pat[inst]; if (!str) continue;
+    const v = (+str[i]) / 9;
+    if (v > 0) { INST[inst](t, v); if (PULSE_INST[inst]) pv = Math.max(pv, v * PULSE_INST[inst]); }
+  }
+  if (pv >= 0.45) pulseQ.push({ t, v: pv });
+}
+
+function scheduler() {
+  if (!ctx || !audioOn) return;
+  while (nextStepTime < ctx.currentTime + LOOKAHEAD) {
+    const k = activeKey(), p = S[k];
+    const profKey = k + p.pattern;
+    if (profKey !== lastProfKey) { lastProfKey = profKey; step = 0; }
+    playStep(step, nextStepTime, p);
+    nextStepTime += 60 / p.bpm / 4;
+    step = (step + 1) % 16;
+  }
+}
+
+/* chimes */
+function bell(t, f, v) {
+  [[1, 1, 2.4], [2, 0.22, 1.5], [2.76, 0.3, 1.1], [5.4, 0.1, 0.5]].forEach(([m, a, d]) => {
+    const o = ctx.createOscillator(); o.frequency.value = f * m;
+    const g = ctx.createGain(); env(g, t, v * a, 0.005, d);
+    o.connect(g).connect(chimeBus); o.start(t); o.stop(t + d + 0.1);
+  });
+}
+function chime(kind) {
+  if (!ctx) return;
+  const t = ctx.currentTime + 0.05;
+  if (kind === 'heads') { bell(t, 1046.5, 0.18); return; }
+  rhythmBus.gain.setTargetAtTime(S.vol.rhythm * 0.2, t, 0.05);
+  rhythmBus.gain.setTargetAtTime(S.vol.rhythm, t + 1.8, 0.5);
+  if (kind === 'break') { bell(t, 880, 0.5); bell(t + 0.5, 659.25, 0.5); bell(t + 1.0, 523.25, 0.5); }
+  else { bell(t, 523.25, 0.45); bell(t + 0.16, 659.25, 0.45); bell(t + 0.32, 783.99, 0.5); bell(t + 0.48, 1046.5, 0.45); }
+}
+
+/* ---------------- pomodoro timer ---------------- */
+const T = { phase: 'focus', running: false, endAt: 0, remain: 0, done: 0, heads: false, fresh: true };
+const PHASE_NAME = { focus: 'Focus', short: 'Short break', long: 'Long break' };
+function dur(ph) { return (ph === 'focus' ? S.focusMin : ph === 'short' ? S.shortMin : S.longMin) * 60000; }
+T.remain = dur('focus');
+function remaining() { return T.running ? Math.max(0, T.endAt - Date.now()) : T.remain; }
+function nextPhase() { return T.phase !== 'focus' ? 'focus' : ((T.done + 1) % S.longEvery === 0 ? 'long' : 'short'); }
+
+function setPhase(ph) {
+  T.phase = ph; T.remain = dur(ph); T.heads = false; T.fresh = true; preview = null;
+  document.body.dataset.phase = ph;
+}
+function startTimer() {
+  preview = null;
+  T.running = true; T.fresh = false; T.endAt = Date.now() + T.remain;
+  startAudio(); render();
+}
+function pauseTimer() {
+  T.remain = remaining(); T.running = false; preview = null;
+  stopAudio(); render();
+}
+function advance(manual) {
+  const to = nextPhase();
+  if (T.phase === 'focus') T.done++;
+  goTo(to, manual);
+}
+function goTo(ph, manual) {
+  const wasRunning = T.running;
+  setPhase(ph);
+  if (audioOn) chime(ph === 'focus' ? 'focus' : 'break');
+  if (wasRunning && (manual || S.autoNext)) {
+    T.fresh = false; T.endAt = Date.now() + T.remain;
+    applyAudio(1.2);            // slow glide = audible cue
+  } else if (wasRunning) {
+    T.running = false;
+    applyAudio(1.2);
+    stopAudio(3);               // let the chime ring, then go quiet
+  }
+  render();
+}
+function timerCheck() {
+  if (!T.running) return;
+  const r = T.endAt - Date.now();
+  if (S.headsUp && !T.heads && r <= 60000 && dur(T.phase) > 120000) { T.heads = true; if (audioOn) chime('heads'); }
+  if (r <= 0) advance(false);
+}
+
+/* ticker in a worker so background tabs keep exact timing */
+function tick() { scheduler(); timerCheck(); }
+try {
+  const blob = new Blob(['let id;onmessage=e=>{clearInterval(id);id=setInterval(()=>postMessage(0),e.data)}'], { type: 'text/javascript' });
+  const w = new Worker(URL.createObjectURL(blob));
+  w.onmessage = tick; w.postMessage(25);
+} catch (e) { setInterval(tick, 25); }
+
+/* ---------------- UI ---------------- */
+function band(hz) { return hz < 4 ? 'δ delta' : hz < 8 ? 'θ theta' : hz < 13 ? 'α alpha' : hz < 30 ? 'β beta' : 'γ gamma'; }
+function patternOptions() {
+  let html = '';
+  for (const g of ['Driving', 'Calm']) {
+    html += `<optgroup label="${g}">`;
+    for (const k in PATTERNS) if (PATTERNS[k].group === g) html += `<option value="${k}">${PATTERNS[k].name}</option>`;
+    html += '</optgroup>';
+  }
+  return html;
+}
+function soundCard(k, title) {
+  return `
+  <div class="card-head"><h2>${title}</h2><button class="sm listen" data-k="${k}">Listen</button></div>
+  <label class="check"><input type="checkbox" data-k="${k}" data-f="binOn"> Binaural beats</label>
+  <div class="field"><label>Beat frequency <span class="val" id="${k}-beat"></span></label>
+    <input type="range" min="2" max="40" step="0.5" data-k="${k}" data-f="beat"></div>
+  <div class="field"><label>Carrier tone <span class="val" id="${k}-carrier"></span></label>
+    <input type="range" min="100" max="400" step="5" data-k="${k}" data-f="carrier"></div>
+  <div class="sep"></div>
+  <div class="field"><label>Rhythm</label><select data-k="${k}" data-f="pattern">${patternOptions()}</select></div>
+  <div class="field"><label>Tempo <span class="val" id="${k}-bpm"></span></label>
+    <input type="range" min="40" max="160" step="1" data-k="${k}" data-f="bpm"></div>
+  <div class="field"><div class="lbl">Noise</div>
+    <div class="seg">${['off', 'white', 'pink', 'brown'].map(n => `<button data-k="${k}" data-noise="${n}">${n}</button>`).join('')}</div></div>`;
+}
+$('#card-focus').innerHTML = soundCard('focus', 'Focus sound');
+$('#card-brk').innerHTML = soundCard('brk', 'Break sound');
+
+function syncControls() {
+  $$('[data-f]').forEach(el => {
+    const v = S[el.dataset.k][el.dataset.f];
+    if (el.type === 'checkbox') el.checked = v; else el.value = v;
+  });
+  $$('[data-vol]').forEach(el => el.value = S.vol[el.dataset.vol]);
+  $$('[data-t]').forEach(el => { if (el.type === 'checkbox') el.checked = S[el.dataset.t]; else el.value = S[el.dataset.t]; });
+  labels();
+}
+function labels() {
+  for (const k of ['focus', 'brk']) {
+    const p = S[k];
+    $(`#${k}-beat`).textContent = `${p.beat} Hz · ${band(p.beat)}`;
+    $(`#${k}-carrier`).textContent = `L ${(p.carrier - p.beat / 2).toFixed(1)} · R ${(p.carrier + p.beat / 2).toFixed(1)} Hz`;
+    $(`#${k}-bpm`).textContent = `${p.bpm} BPM`;
+    $$(`[data-k="${k}"][data-noise]`).forEach(b => b.classList.toggle('on', b.dataset.noise === p.noise));
+  }
+  for (const v in S.vol) $(`#v-${v}`).textContent = Math.round(S.vol[v] * 100) + '%';
+}
+
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.f) {
+    const k = el.dataset.k, f = el.dataset.f;
+    S[k][f] = el.type === 'checkbox' ? el.checked : el.tagName === 'SELECT' ? el.value : parseFloat(el.value);
+  } else if (el.dataset.vol) {
+    S.vol[el.dataset.vol] = parseFloat(el.value);
+  } else if (el.dataset.t) {
+    const f = el.dataset.t;
+    if (el.type === 'checkbox') S[f] = el.checked;
+    else {
+      const n = Math.round(parseFloat(el.value));
+      if (!isFinite(n) || n < +el.min) return;
+      S[f] = Math.min(n, +el.max);
+      if (T.fresh && !T.running) T.remain = dur(T.phase);
+    }
+  } else return;
+  save(); labels(); if (audioOn) applyAudio(0.15); render();
+});
+document.addEventListener('click', e => {
+  const nb = e.target.closest('[data-noise]');
+  if (nb) { S[nb.dataset.k].noise = nb.dataset.noise; save(); labels(); if (audioOn) applyAudio(0.5); render(); return; }
+  const lb = e.target.closest('.listen');
+  if (lb) {
+    const k = lb.dataset.k;
+    if (preview === k || (!preview && audioOn && activeKey() === k && !T.running)) {
+      preview = null;
+      if (!T.running) stopAudio(); else applyAudio(0.6);
+    } else {
+      preview = k;
+      if (!audioOn) startAudio(); else applyAudio(0.6);
+    }
+    render(); return;
+  }
+  const tb = e.target.closest('#tabs [data-ph]');
+  if (tb && tb.dataset.ph !== T.phase) { goTo(tb.dataset.ph, true); return; }
+});
+$('#start').onclick = () => T.running ? pauseTimer() : startTimer();
+$('#skip').onclick = () => advance(true);
+$('#reset').onclick = () => { if (T.running) pauseTimer(); T.done = 0; setPhase('focus'); if (audioOn) stopAudio(); render(); };
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input[type=number],select')) return;
+  if (e.code === 'Space') { e.preventDefault(); $('#start').click(); }
+  else if (e.key === 's' || e.key === 'S') $('#skip').click();
+});
+
+const prog = $('#prog'), C = 2 * Math.PI * 90;
+prog.style.strokeDasharray = C;
+function fmt(ms) { const s = Math.ceil(ms / 1000); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }
+
+function render() {
+  const r = remaining(), d = dur(T.phase);
+  $('#time').textContent = fmt(r);
+  prog.style.strokeDashoffset = C * (1 - Math.min(1, r / d));
+  $('#phaseName').textContent = PHASE_NAME[T.phase];
+  const np = nextPhase();
+  $('#sub').textContent = T.phase === 'focus'
+    ? `Session ${(T.done % S.longEvery) + 1} of ${S.longEvery} · then ${PHASE_NAME[np].toLowerCase()}`
+    : `Then focus · ${S.focusMin} min`;
+  $$('#tabs [data-ph]').forEach(b => b.classList.toggle('on', b.dataset.ph === T.phase));
+  $('#start').textContent = T.running ? 'Pause' : (T.fresh ? 'Start' : 'Resume');
+
+  const n = S.longEvery, filled = T.phase === 'long' ? n : T.done % n;
+  const dots = $('#dots');
+  if (dots.children.length !== n) dots.innerHTML = '<span class="dot"></span>'.repeat(n);
+  [...dots.children].forEach((el, i) => el.classList.toggle('on', i < filled));
+
+  const k = activeKey(), p = S[k];
+  const live = audioOn ? k : null;
+  $('#card-focus').classList.toggle('live', live === 'focus');
+  $('#card-brk').classList.toggle('live', live === 'brk');
+  $$('.listen').forEach(b => { const on = audioOn && preview === b.dataset.k; b.classList.toggle('on', on); b.textContent = on ? 'Stop' : 'Listen'; });
+
+  if (audioOn) {
+    const bits = [];
+    if (p.binOn) bits.push(`${band(p.beat)} ${p.beat} Hz binaural`);
+    if (p.pattern !== 'off') bits.push(`${PATTERNS[p.pattern].name.split(' —')[0]} ${p.bpm} BPM`);
+    if (p.noise !== 'off') bits.push(`${p.noise} noise`);
+    $('#np').textContent = (preview ? 'Previewing ' : 'Playing ') + (k === 'focus' ? 'focus' : 'break') + ' sound — ' + (bits.join(' · ') || 'silence');
+  } else $('#np').textContent = T.running ? '' : 'Press Start — sound and timer begin together';
+  document.title = (T.running ? fmt(r) + ' · ' + PHASE_NAME[T.phase] + ' — ' : '') + 'Focus Beats';
+}
+
+const ring = $('#ring'), glow = $('#glow');
+function frame() {
+  render();
+  if (ctx) {
+    const now = ctx.currentTime;
+    while (pulseQ.length && pulseQ[0].t <= now) {
+      const p = pulseQ.shift();
+      if (now - p.t < 0.1) {
+        ring.animate([{ transform: `scale(${1 + 0.022 * p.v})` }, { transform: 'scale(1)' }], { duration: 260, easing: 'cubic-bezier(.2,.7,.3,1)' });
+        glow.animate([{ opacity: 0.5 + 0.5 * p.v }, { opacity: 0.5 }], { duration: 320, easing: 'ease-out' });
+      }
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+syncControls();
+render();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
